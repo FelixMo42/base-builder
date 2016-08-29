@@ -49,6 +49,8 @@ function map:draw()
 	for i =  1,#self.players do
 		self.players[i]:draw()
 	end
+	--debug
+	love.graphics.print(self.speed,5,5)
 end
 
 function map:mousemoved(x,y,dx,dy)
@@ -80,6 +82,20 @@ function map:wheelmoved(x,y)
 	game.mousemoved(mouse.x,mouse.y,0,0)
 end
 
+function map:keyreleased(key)
+	if key == "space" then
+		self.speed = self.speed == 0 and 1 or 0
+	end
+
+	if key == "left" then
+		self.speed = self.speed - 0.5
+	end
+
+	if key == "right" then
+		self.speed = self.speed + 0.5
+	end
+end
+
 function map:setTile(x,y,t)
 	self[x][y] = (t):new({
 		x = x, y = y,
@@ -89,12 +105,14 @@ function map:setTile(x,y,t)
 end
 
 function map:changeTile(x,y,t)
+	local j = self[x][y].job
 	self[x][y] = self[x][y]:new(t:new())
+	self[x][y].job = j
 	if self[x][y].object then
 		self[x][y].object.tile = self[x][y]
 	end
-	if self[x][y].j then
-		self[x][y].j.tile = self[x][y]
+	for job in pairs(self[x][y].job) do
+		self[x][y].job[job].tile = self[x][y]
 	end
 end
 

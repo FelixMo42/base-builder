@@ -135,9 +135,13 @@ function game.wheelmoved(x,y)
 end
 
 function game.keyreleased(key)
-	if key == "escape" then
-		game.tab = nil
-	end
+	--tabs
+		if key == "escape" then
+			game.tab = nil
+			return true
+		end
+	--map
+		map:keyreleased(key)
 end
 
 function game.resize(w,h)
