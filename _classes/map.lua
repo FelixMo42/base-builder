@@ -3,10 +3,11 @@ map = class:new({
 	width = 100, height = 100,
 	x = 0, y = 0, scale = 50,
 	jobQueue = {}, players = {},
-	speed = 1
+	speed = 1,
 })
 
-function map:load()
+function map:load(o)
+	self.jobQueue = {}; self.players = {}
 	for x = 0,self.width-1 do
 		self[x] = self[x] or {}
 		for y = 0,self.height-1 do
@@ -55,19 +56,19 @@ end
 
 function map:mousemoved(x,y,dx,dy)
 	if love.mouse.isDown(2, 3) then
-		map.x = math.min(math.max(map.x - (dx/map.scale),0),self.width-screen.x/self.scale)
-		map.y = math.min(math.max(map.y - (dy/map.scale),0),self.height-screen.y/self.scale)
+		self.x = math.min(math.max(self.x - (dx/self.scale),0),self.width-screen.x/self.scale)
+		self.y = math.min(math.max(self.y - (dy/self.scale),0),self.height-screen.y/self.scale)
 	end
 end
 
 function map:mousereleased(x, y, button)
 	if not mouse.drag and button == 1 then
-		map:tilePressed(mouse.tile.x,mouse.tile.y)
+		self:tilePressed(mouse.tile.x,mouse.tile.y)
 	elseif button == 1 and mouse.tile.drag then
 		for x = mouse.tile.drag.x,mouse.tile.x,math.sign(mouse.tile.x-mouse.tile.drag.x+0.1) do
 			for y = mouse.tile.drag.y,mouse.tile.y,math.sign(mouse.tile.y-mouse.tile.drag.y+0.1) do
 				if x == mouse.tile.drag.x or x == mouse.tile.x or y == mouse.tile.drag.y or y == mouse.tile.y or not mouse.type.name:find("wall") then
-					map:tilePressed(x,y)
+					self:tilePressed(x,y)
 				end
 			end
 		end
@@ -75,10 +76,10 @@ function map:mousereleased(x, y, button)
 end
 
 function map:wheelmoved(x,y)
-	local s = math.min(math.max(map.scale + y, self.minZoom), self.maxZoom)
-	map.x = math.min(math.max(map.x + ((screen.x/map.scale)-(screen.x/s))/2,0),self.width-screen.x/self.scale)
-	map.y = math.min(math.max(map.y + ((screen.x/map.scale)-(screen.x/s))/2,0),self.height-screen.y/self.scale)
-	map.scale = s
+	local s = math.min(math.max(self.scale + y, self.minZoom), self.maxZoom)
+	self.x = math.min(math.max(self.x + ((screen.x/self.scale)-(screen.x/s))/2,0),self.width-screen.x/self.scale)
+	self.y = math.min(math.max(self.y + ((screen.x/self.scale)-(screen.x/s))/2,0),self.height-screen.y/self.scale)
+	self.scale = s
 	game.mousemoved(mouse.x,mouse.y,0,0)
 end
 
@@ -128,4 +129,10 @@ function map:tileWalkeble(x,y)
 	if self[x] and self[x][y] and self[x][y]:walkeble() then
 		return true
 	end
+end
+
+function map:addPlayer(x,y,p)
+	self.players[#self.players+1] = (p or player):new({
+		map = self, x = x, y = y
+	})
 end

@@ -46,7 +46,7 @@ function love.load()
 				end
 			end
 		end
-		love.openTab("game")
+		love.openTab(tabs.def or tabs[1])
 	--saves
 		filename = "data.txt"
 		if not love.filesystem.isFile(filename) then

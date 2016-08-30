@@ -1,9 +1,10 @@
 function game.load()
+	--system
+		tabs.def = "game"
 	--map
-		map = map:new()
-	--players
-		map.players[#map.players+1] = player:new({map = map})
-		map.players[#map.players+1] = player:new({map = map,x=1,y=0})
+		world = map:new()
+		world:addPlayer()
+		world:addPlayer(1,0)
 	--mouse
 		mouse.tile = vector2:new(0,0)
 		mouse.type = tiles.floor
@@ -16,6 +17,9 @@ function game.load()
 		})
 		game.ui[2] = game.ui[1]:new({
 			text = "build objects", data = "objects"
+		})
+		game.ui[3] = game.ui[1]:new({
+			text = "saves", data = "saves"
 		})
 	--tabs
 		game.tabs = {}
@@ -40,28 +44,31 @@ function game.load()
 			game.tabs.objects[#game.tabs.objects+1] = game.tabs.objects[1]:new({
 				text = "build "..buildList[i], data = objects[buildList[i]], ry = (#game.tabs.objects + 1) * 35
 			})
-		end	
+		end
+		game.tabs.saves[1] = game.tabs.floor[1]:new({
+			text = "restart", func = function() world = map:new() end
+		})
 end
 
 function game.update(dt)
 	--map
-		map:update(dt)
+		world:update(dt)
 end
 
 function game.draw()
 	--map
-		map:draw()
+		world:draw()
 	--mouse
-		local x,y,w,h = 0,0,map.scale,map.scale
+		local x,y,w,h = 0,0,world.scale,world.scale
 		if mouse.tile.drag then
 			local dx = math.sign(mouse.tile.x-mouse.tile.drag.x)
 			local dy = math.sign(mouse.tile.y-mouse.tile.drag.y)
-			x = (mouse.tile.drag.x - map.x - math.min(dx,0)) * w
-			y = (mouse.tile.drag.y - map.y - math.min(dy,0)) * h
+			x = (mouse.tile.drag.x - world.x - math.min(dx,0)) * w
+			y = (mouse.tile.drag.y - world.y - math.min(dy,0)) * h
 			w = w * (mouse.tile.x - mouse.tile.drag.x + 1 + math.sign(dx+0.1) - 1)
 			h = h * (mouse.tile.y - mouse.tile.drag.y + 1 + math.sign(dy+0.1) - 1)
 		else
-			x,y = (mouse.tile.x-map.x)*w, (mouse.tile.y-map.y)*h
+			x,y = (mouse.tile.x-world.x)*w, (mouse.tile.y-world.y)*h
 		end
 		love.graphics.setColor(255,255,255,100)
 		love.graphics.rectangle("fill",x,y,w,h)
@@ -79,10 +86,10 @@ end
 
 function game.mousemoved(x,y,dx,dy)
 	--map
-		map:mousemoved(x,y,dx,dy)
+		world:mousemoved(x,y,dx,dy)
 	--mouse
-		mouse.tile.x = math.floor(x/map.scale + map.x)
-		mouse.tile.y = math.floor(y/map.scale + map.y)
+		mouse.tile.x = math.floor(x/world.scale + world.x)
+		mouse.tile.y = math.floor(y/world.scale + world.y)
 end
 
 function game.mousepressed(x, y, button, istouch)
@@ -101,8 +108,8 @@ function game.mousepressed(x, y, button, istouch)
 				end
 			end
 			mouse.tile.drag = {}
-			mouse.tile.drag.x = math.floor(x/map.scale + map.x)
-			mouse.tile.drag.y = math.floor(y/map.scale + map.y)
+			mouse.tile.drag.x = math.floor(x/world.scale + world.x)
+			mouse.tile.drag.y = math.floor(y/world.scale + world.y)
 		end
 end
 
@@ -124,14 +131,14 @@ function game.mousereleased(x, y, button, istouch)
 			end
 		end
 	--map
-		map:mousereleased(x, y, button)
+		world:mousereleased(x, y, button)
 	--mouse
 		mouse.tile.drag = nil
 end
 
 function game.wheelmoved(x,y)
 	--map
-		map:wheelmoved(x,y)
+		world:wheelmoved(x,y)
 end
 
 function game.keyreleased(key)
@@ -141,7 +148,7 @@ function game.keyreleased(key)
 			return true
 		end
 	--map
-		map:keyreleased(key)
+		world:keyreleased(key)
 end
 
 function game.resize(w,h)

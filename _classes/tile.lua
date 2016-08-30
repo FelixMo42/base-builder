@@ -6,6 +6,7 @@ tile = class:new({
 })
 
 function tile:load()
+
 	self.job = {}
 end
 
@@ -16,7 +17,7 @@ function tile:draw()
 	if self.object then
 		self.object:draw()
 	end
-	if self.job.object or self.job.type then
+	if table.count(self.job) > 0 then
 		love.graphics.setColor(100,100,100,100)
 		love.graphics.rectangle("fill",x,y,self.map.scale,self.map.scale)
 	end
