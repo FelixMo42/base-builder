@@ -46,7 +46,16 @@ function game.load()
 			})
 		end
 		game.tabs.saves[1] = game.tabs.floor[1]:new({
-			text = "restart", func = function() world = map:new() end
+			text = "restart", func = function() world = map:new() end,
+			ry = (#game.tabs.saves + 1) * 35
+		})
+		game.tabs.saves[2] = game.tabs.floor[1]:new({
+			text = "save", func = function() world:save() end,
+			ry = (#game.tabs.saves + 1) * 35
+		})
+		game.tabs.saves[3] = game.tabs.floor[1]:new({
+			text = "load", func = function() world = fileSystem.loadFile("map") end,
+			ry = (#game.tabs.saves + 1) * 35
 		})
 end
 
@@ -95,18 +104,6 @@ end
 function game.mousepressed(x, y, button, istouch)
 	--mouse
 		if button == 1 then
-			for i = 1,#game.ui do
-				if game.ui[i]:onPressed() then
-					return true
-				end
-			end
-			if game.tab then
-				for i = 1,#game.tabs[game.tab] do
-					if game.tabs[game.tab][i]:onPressed() then
-						return true
-					end
-				end
-			end
 			mouse.tile.drag = {}
 			mouse.tile.drag.x = math.floor(x/world.scale + world.x)
 			mouse.tile.drag.y = math.floor(y/world.scale + world.y)
@@ -118,7 +115,7 @@ function game.mousereleased(x, y, button, istouch)
 		if not mouse.drag then
 			for i = 1,#game.ui do
 				if game.ui[i]:onPressed() then
-					mouse.drag = true
+					button = 5
 				end
 			end
 		end
@@ -126,7 +123,7 @@ function game.mousereleased(x, y, button, istouch)
 		if game.tab and not mouse.drag then
 			for i = 1,#game.tabs[game.tab] do
 				if game.tabs[game.tab][i]:onPressed() then
-					mouse.drag = true
+					button = 5
 				end
 			end
 		end
@@ -149,6 +146,9 @@ function game.keyreleased(key)
 		end
 	--map
 		world:keyreleased(key)
+		if key == "s" then
+			world:save()
+		end
 end
 
 function game.resize(w,h)

@@ -26,3 +26,8 @@ function job:cancel()
 	end
 	table.removeValue(self.queue,self)
 end
+
+function job:save()
+	local s = ""
+	return s
+end

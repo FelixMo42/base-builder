@@ -14,7 +14,7 @@ function tile:draw()
 	local x,y = (self.x-self.map.x)*self.map.scale, (self.y-self.map.y)*self.map.scale
 	love.graphics.setColor(self.color)
 	love.graphics.rectangle("fill",x,y,self.map.scale,self.map.scale)
-	if self.object then
+	if self.object and self.object.name ~= "none" then
 		self.object:draw()
 	end
 	if table.count(self.job) > 0 then
@@ -64,6 +64,16 @@ function tile:walkeble()
 		return false
 	end
 	return true
+end
+
+function tile:save()
+	local s = "tiles."..self.name..":new({"
+	s = s.."x = "..self.x..", y = "..self.y..",map = w"
+	if self.object.name ~= "none" then
+		s = s..",object = objects."..self.object.name..":new()"
+	end
+	s = s.."})"
+	return s
 end
 
 tiles = {}

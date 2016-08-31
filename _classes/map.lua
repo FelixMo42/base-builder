@@ -3,10 +3,10 @@ map = class:new({
 	width = 100, height = 100,
 	x = 0, y = 0, scale = 50,
 	jobQueue = {}, players = {},
-	speed = 1,
+	speed = 1
 })
 
-function map:load(o)
+function map:load()
 	self.jobQueue = {}; self.players = {}
 	for x = 0,self.width-1 do
 		self[x] = self[x] or {}
@@ -102,7 +102,11 @@ function map:setTile(x,y,t)
 		x = x, y = y,
 		map = self,
 	})
-	self[x][y].object = objects.none:new({tile = self[x][y]})
+	if not self[x][y].object or self[x][y].object.name == "none" then
+		self[x][y].object = objects.none:new({tile = self[x][y]})
+	else
+		self[x][y].object.tile = self[x][y]
+	end
 end
 
 function map:changeTile(x,y,t)
@@ -132,7 +136,33 @@ function map:tileWalkeble(x,y)
 end
 
 function map:addPlayer(x,y,p)
-	self.players[#self.players+1] = (p or player):new({
-		map = self, x = x, y = y
-	})
+	if type(x) == "table" then
+		self.players[#self.players+1] = x:new({
+			map = self, x = x, y = y
+		})
+	else
+		self.players[#self.players+1] = (p or player):new({
+			map = self, x = x, y = y
+		})
+	end
+end
+
+function map:save(file)
+	local s = "local w = {}\n"
+	s = s .. "w = world:new("..fileSystem.saveTable(self)..")\n"
+	--save tiles
+	for x = 0,self.width-1 do
+		for y = 0,self.height-1 do
+			s = s .. "w:setTile("..x..","..y..","..self[x][y]:save()..")\n"
+		end
+	end
+	--players
+	for i = 1,#self.players do
+		s = s.."w:addPlayer()\n"
+		s = s.."w.players[#w.players] = w.players[#w.players]:new("
+		s = s..self.players[i]:save()..")\n"
+	end
+	s = s .. "return w"
+	fileSystem.saveToFile("map", s)
+	return s
 end

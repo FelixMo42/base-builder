@@ -1,4 +1,5 @@
 player = class:new({
+	type = "player",
 	x = 0, y = 0, tps = 5,
 	path = {}, i = 1,
 	map = map,
@@ -128,4 +129,9 @@ function player:pathfind(start,target,map)
 		s = false
 	end
 	return path,s,closed,open
+end
+
+function player:save()
+	local s = fileSystem.saveTable(self) 
+	return s
 end
