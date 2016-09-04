@@ -3,7 +3,9 @@ fileSystem = {}
 function fileSystem.saveTable(t)
 	local s = "{\n"
 	for k,v in pairs(t) do
-		if type(v) ~= "table" and type(v) ~= "function" then
+		if type(v) == "string" then
+			s = s .. k .. " = '" .. tostring(v) .. "',\n"
+		elseif type(v) ~= "table" and type(v) ~= "function" then
 			s = s .. k .. " = " .. tostring(v) .. ",\n"
 		end
 	end

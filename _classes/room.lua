@@ -1,0 +1,3 @@
+room = class:new({
+	neighbors = {}
+})

@@ -3,7 +3,7 @@ map = class:new({
 	width = 100, height = 100,
 	x = 0, y = 0, scale = 50,
 	jobQueue = {}, players = {},
-	speed = 1
+	speed = 1, rooms = {}
 })
 
 function map:load()
@@ -51,7 +51,7 @@ function map:draw()
 		self.players[i]:draw()
 	end
 	--debug
-	love.graphics.print(self.speed,5,5)
+	love.graphics.print("speed: "..self.speed,5,5)
 end
 
 function map:mousemoved(x,y,dx,dy)
@@ -62,12 +62,17 @@ function map:mousemoved(x,y,dx,dy)
 end
 
 function map:mousereleased(x, y, button)
-	if not mouse.drag and button == 1 then
-		self:tilePressed(mouse.tile.x,mouse.tile.y)
-	elseif button == 1 and mouse.tile.drag then
-		for x = mouse.tile.drag.x,mouse.tile.x,math.sign(mouse.tile.x-mouse.tile.drag.x+0.1) do
-			for y = mouse.tile.drag.y,mouse.tile.y,math.sign(mouse.tile.y-mouse.tile.drag.y+0.1) do
-				if x == mouse.tile.drag.x or x == mouse.tile.x or y == mouse.tile.drag.y or y == mouse.tile.y or not mouse.type.name:find("wall") then
+	local m,b = mouse, button
+	if not mouse.selected or (self[m.tile.x][m.tile.y].player and m.selected.type == "player") and b == 1 then
+		m.selected = self[m.tile.x][m.tile.y].player
+	elseif m.selected.type == "player" then
+		m.selected:pressed(m.tile.x,m.tile.y,b)
+	elseif not m.drag and b == 1 then
+		self:tilePressed(m.tile.x,m.tile.y)
+	elseif m.tile.drag and b == 1 then
+		for x = m.tile.drag.x,m.tile.x,math.sign(m.tile.x-m.tile.drag.x+0.1) do
+			for y = m.tile.drag.y,m.tile.y,math.sign(m.tile.y-m.tile.drag.y+0.1) do
+				if x == m.tile.drag.x or x == m.tile.x or y == m.tile.drag.y or y == m.tile.y or not m.selected.name:find("wall") then
 					self:tilePressed(x,y)
 				end
 			end
@@ -87,13 +92,14 @@ function map:keyreleased(key)
 	if key == "space" then
 		self.speed = self.speed == 0 and 1 or 0
 	end
-
 	if key == "left" then
 		self.speed = self.speed - 0.5
 	end
-
 	if key == "right" then
 		self.speed = self.speed + 0.5
+	end
+	if key == "s" then
+		world:save()
 	end
 end
 
@@ -122,10 +128,10 @@ function map:changeTile(x,y,t)
 end
 
 function map:tilePressed(x,y)
-	if mouse.type.type == "tile" then
-		self[x][y]:changeType(mouse.type)
-	elseif mouse.type.type == "object" then
-		self[x][y]:instalObject(mouse.type)
+	if mouse.selected.type == "tile" then
+		self[x][y]:changeType(mouse.selected)
+	elseif mouse.selected.type == "object" then
+		self[x][y]:instalObject(mouse.selected)
 	end
 end
 

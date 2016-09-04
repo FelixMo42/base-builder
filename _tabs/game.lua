@@ -7,7 +7,6 @@ function game.load()
 		world:addPlayer(1,0)
 	--mouse
 		mouse.tile = vector2:new(0,0)
-		mouse.type = tiles.floor
 	--ui
 		game.ui = {}
 		game.ui[1] = button:new({
@@ -28,7 +27,7 @@ function game.load()
 		end
 		game.tabs.floor[1] = game.ui[1]:new({
 			text = "destroy", data = tiles.grass, ry = 35, ys = 0,
-			func = function(self) mouse.type = self.data end, xs = 2,
+			func = function(self) mouse.selected = self.data end, xs = 2,
 		})
 		local buildList = {"floor"}
 		for i = 1, #buildList do
@@ -91,6 +90,16 @@ function game.draw()
 		for i = 1,#game.ui do
 			game.ui[i]:draw()
 		end
+	--selected box
+		if mouse.selected then
+			local w = f11:getWidth("selected type: "..mouse.selected.type)+25
+			love.graphics.setColor(255,255,255,100)
+			love.graphics.rectangle("fill",screen.x,0,-w,40)
+			love.graphics.setColor(0,0,0)
+			love.graphics.rectangle("line",screen.x,0,-w,40)
+			love.graphics.printf("selected type: "..mouse.selected.type,5,5,screen.x-10,"right")
+			love.graphics.printf("selected "..mouse.selected.type..": "..mouse.selected.name,5,20,screen.x-10,"right")
+		end
 end
 
 function game.mousemoved(x,y,dx,dy)
@@ -142,13 +151,11 @@ function game.keyreleased(key)
 	--tabs
 		if key == "escape" then
 			game.tab = nil
+			mouse.selected = nil
 			return true
 		end
 	--map
 		world:keyreleased(key)
-		if key == "s" then
-			world:save()
-		end
 end
 
 function game.resize(w,h)

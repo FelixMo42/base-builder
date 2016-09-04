@@ -2,13 +2,15 @@ player = class:new({
 	type = "player",
 	x = 0, y = 0, tps = 5,
 	path = {}, i = 1,
-	map = map,
+	map = map, name = "bob",
 	color = color.blue
 })
 
 function player:load()
-	self.map[self.x][self.y].player = self
-	self.tile = self.map[self.x][self.y]
+	if self.map and self.x and self.y then
+		self.map[self.x][self.y].player = self
+		self.tile = self.map[self.x][self.y]
+	end
 end
 
 function player:registerTile(x,y)
@@ -18,28 +20,20 @@ function player:registerTile(x,y)
 end
 
 function player:update(dt)
+	--loop all jobs
 	while not self.job and #self.map.jobQueue >= self.i do
 		local j = self.map.jobQueue[self.i]
 		local p, s = self:pathfind(vector2:new(self.tile.x,self.tile.y),vector2:new(j.tile.x,j.tile.y),self.map)
 		if s then
-			self.job = j -- get job
-			table.remove(self.job.queue, self.i) -- remouve job from queue
-			j.queue = self -- add to new queue
-			function j:jobCanceled()
-				self.queue.path = {self.queue.path[#self.queue.path]}
-			end
-			self.path = p -- get path
-			self.path[#self.path] = nil -- remove current tile
-			table.remove(self.path,1) -- remove target tile
+			self:getJob(j,p)
 			self.i = 0
 		end
 		self.i = self.i + 1
-	end 
-
+	end
 	if self.i - #self.map.jobQueue > 1 then
 		self.i = 1
 	end
-
+	--calc path
 	if #self.path > 0 then
 		local p = 1/math.sqrt((self.path[#self.path].x-self.tile.x)^2+(self.path[#self.path].y-self.tile.y)^2)
 		local x = (self.path[#self.path].x-self.tile.x) * dt * self.tps * p
@@ -54,7 +48,7 @@ function player:update(dt)
 			self.path[#self.path] = nil
 		end
 	end
-
+	--work on job
 	if self.job and #self.path == 0 then
 		if self.job:update(dt) then
 			self.job = nil
@@ -64,13 +58,31 @@ end
 
 function player:draw()
 	local s = self.map.scale
+	--draw path if selected
+	if mouse.selected == self and #self.path > 0 then
+		love.graphics.setColor(color.white)
+		for i = 2,#self.path+1 do
+			if i == #self.path+1 then
+				love.graphics.line(self.x*s+s/2,self.y*s+s/2 , self.path[i-1].x*s+s/2,self.path[i-1].y*s+s/2)
+			else
+				love.graphics.line(
+					self.path[i-1].x*s+s/2,self.path[i-1].y*s+s/2 , self.path[i].x*s+s/2,self.path[i].y*s+s/2
+				)
+			end
+		end
+		love.graphics.circle("fill",self.path[1].x*s+s/2,self.path[1].y*s+s/2,s/6,s/6)
+	end
+	--draw self
 	love.graphics.setColor(self.color)
 	love.graphics.circle("fill",(self.x-self.map.x)*s+s/2,(self.y-self.map.y)*s+s/2,s/2-2,s/2-2)
 	love.graphics.setColor(color.black)
 	love.graphics.circle("line",(self.x-self.map.x)*s+s/2,(self.y-self.map.y)*s+s/2,s/2-2,s/2-2)
 end
 
-function player:pathfind(start,target,map)
+function player:pathfind(start,target,map,targetOk)
+	if targetOK == nil then
+		local targetOK = true
+	end
 	local open = {}
 	local closed = {}
 	open[start.x.."_"..start.y] = start:new()
@@ -134,4 +146,64 @@ end
 function player:save()
 	local s = fileSystem.saveTable(self) 
 	return s
+end
+
+function player:pressed(x,y,b)
+	if b == 1 and (x ~= self.x or y ~= self.y) and self.map:tileWalkeble(x,y) then
+		local p,s = self:pathfind(vector2:new(self.tile.x,self.tile.y),vector2:new(x,y),self.map,false)
+		if s then
+			if self.job then
+				self:returnJob()
+			end
+			self.job = job:new({jobTime = 0, tile = self.map[x][y], queue = self})
+			if #self.path > 0 then
+				local n = self.path[#self.path]
+				self.path = p
+				self.path[#self.path + 1] = n
+			else
+				self.path = p
+				self.path[#self.path] = nil -- remove current tile
+			end
+			self.job.name = "move"
+		end
+	elseif b == 2 and self.map[x][y]:hasJob() and not mouse.drag then
+		j = self.map[x][y]:getJob()
+		local p,s = self:pathfind(vector2:new(self.tile.x,self.tile.y),vector2:new(x,y),self.map)
+		if s then
+			if self.job then
+				self:returnJob()
+			end
+			self:getJob(j,p)
+		end
+	end
+end
+
+function player:returnJob()
+	if not self.job.name or self.job.name ~= "move" then
+		self.job.queue = self.map.jobQueue
+		self.map.jobQueue[#self.map.jobQueue+1] = self.job
+	end
+	self.job = nil
+	self.path = {self.path[#self.path]}
+end
+
+function player:getJob(j,p,keepLast)
+	local p = p or self:pathfind(vector2:new(self.tile.x,self.tile.y),vector2:new(j.tile.x,j.tile.y),self.map)
+	self.job = j -- get job
+	table.removeValue(self.job.queue, j) -- remouve job from queue
+	j.queue = self -- add to new queue
+	function j:jobCanceled()
+		self.queue.path = {self.queue.path[#self.queue.path]}
+	end
+	if #self.path > 0 then
+		local n = self.path[#self.path]
+		self.path = p
+		self.path[#self.path + 1] = n
+	else
+		self.path = p
+		self.path[#self.path] = nil -- remove current tile
+	end
+	if not keepLast then
+		table.remove(self.path,1) -- remove target tile
+	end	
 end
