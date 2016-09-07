@@ -66,27 +66,26 @@ function tile:walkeble()
 	return true
 end
 
+function tile:getNeighbours(getSelf, dist)
+	local n = {}
+	for x = -(dist or 1), dist or 1 do
+		for y = -(dist or 1), dist or 1 do
+			if not (math.abs(x) + math.abs(y) == 0 and getSelf) then
+				if self.map[self.x+x] and self.map[self.x+x][self.y+y] then
+					n[#n+1] = self.map[self.x+x][self.y+y]
+				end
+			end
+		end
+	end
+	return n
+end
+
 function tile:hasJob(t)
 	if t then
 		return self.job[t] ~= nil
 	else
 		return table.count(self.job) > 0
 	end
-end
-
-function tile:getNeighbours(diags)
-	local diags = diags or false
-	local n = {}
-	for x = -1,1 do
-		for y = -1,1 do
-			if math.abs(x) + math.abs(y) == 0 and (not diags or math.abs(x) + math.abs(y) == 2) then
-				if self.map[x] and self.map[x][y] then
-					n[#n+1] = self.map[x][y]
-				end
-			end
-		end
-	end
-	return n
 end
 
 function tile:getJob(t)

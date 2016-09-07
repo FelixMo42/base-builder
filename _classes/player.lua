@@ -20,6 +20,18 @@ function player:registerTile(x,y)
 end
 
 function player:update(dt)
+	--get job from nabours
+	if not self.job and not self.cheaked then
+		for k,v in pairs(self.tile:getNeighbours(true,1)) do
+			if v:hasJob() then
+				if v:walkeble() then
+					self:getJob(v:getJob())
+					break
+				end
+			end
+		end
+		self.cheaked = true
+	end
 	--loop all jobs
 	while not self.job and #self.map.jobQueue >= self.i do
 		local j = self.map.jobQueue[self.i]
@@ -51,7 +63,7 @@ function player:update(dt)
 	--work on job
 	if self.job and #self.path == 0 then
 		if self.job:update(dt) then
-			self.job = nil
+			self:jobEnded()
 		end
 	end
 end
@@ -63,14 +75,14 @@ function player:draw()
 		love.graphics.setColor(color.white)
 		for i = 2,#self.path+1 do
 			if i == #self.path+1 then
-				love.graphics.line(self.x*s+s/2,self.y*s+s/2 , self.path[i-1].x*s+s/2,self.path[i-1].y*s+s/2)
+				love.graphics.line((self.x-self.map.x)*s+s/2,(self.y-self.map.y)*s+s/2 ,
+				(self.path[i-1].x-self.map.x)*s+s/2,(self.path[i-1].y-self.map.y)*s+s/2)
 			else
-				love.graphics.line(
-					self.path[i-1].x*s+s/2,self.path[i-1].y*s+s/2 , self.path[i].x*s+s/2,self.path[i].y*s+s/2
-				)
+				love.graphics.line((self.path[i-1].x-self.map.x)*s+s/2,(self.path[i-1].y-self.map.y)*s+s/2 , 
+				(self.path[i].x-self.map.x)*s+s/2,(self.path[i].y-self.map.y)*s+s/2)
 			end
 		end
-		love.graphics.circle("fill",self.path[1].x*s+s/2,self.path[1].y*s+s/2,s/6,s/6)
+		love.graphics.circle("fill",(self.path[1].x-self.map.x)*s+s/2,(self.path[1].y-self.map.y)*s+s/2,s/6,s/6)
 	end
 	--draw self
 	love.graphics.setColor(self.color)
@@ -149,7 +161,7 @@ function player:save()
 end
 
 function player:pressed(x,y,b)
-	if b == 1 and (x ~= self.x or y ~= self.y) and self.map:tileWalkeble(x,y) then
+	if b == 1 and not mouse.drag and (x ~= self.x or y ~= self.y) and self.map:tileWalkeble(x,y) then
 		local p,s = self:pathfind(vector2:new(self.tile.x,self.tile.y),vector2:new(x,y),self.map,false)
 		if s then
 			if self.job then
@@ -206,4 +218,9 @@ function player:getJob(j,p,keepLast)
 	if not keepLast then
 		table.remove(self.path,1) -- remove target tile
 	end	
+end
+
+function player:jobEnded()
+	self.cheaked = false
+	self.job = nil
 end

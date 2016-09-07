@@ -1,6 +1,6 @@
 job = class:new({
 	tile = tile,
-	jobTime = 1,
+	jobTime = 1
 })
 
 function job:load()
