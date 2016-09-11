@@ -1,13 +1,16 @@
 player = class:new({
 	type = "player",
-	x = 0, y = 0, tps = 5,
-	path = {}, i = 1,
-	map = map, name = "bob",
+	x = 0, y = 0,
+	speed = 5,
+	path = {},
+	i = 1,
+	map = map,
+	name = "bob",
 	color = color.blue
 })
 
-function player:load()
-	if self.map and self.x and self.y then
+function player:load(o)
+	if self.map then
 		self.map[self.x][self.y].player = self
 		self.tile = self.map[self.x][self.y]
 	end
@@ -20,51 +23,12 @@ function player:registerTile(x,y)
 end
 
 function player:update(dt)
-	--get job from nabours
-	if not self.job and not self.cheaked then
-		for k,v in pairs(self.tile:getNeighbours(true,1)) do
-			if v:hasJob() then
-				if v:walkeble() then
-					self:getJob(v:getJob())
-					break
-				end
-			end
-		end
-		self.cheaked = true
+	if not self.job then
+		self:findJob(dt)
 	end
-	--loop all jobs
-	while not self.job and #self.map.jobQueue >= self.i do
-		local j = self.map.jobQueue[self.i]
-		local p, s = self:pathfind(vector2:new(self.tile.x,self.tile.y),vector2:new(j.tile.x,j.tile.y),self.map)
-		if s then
-			self:getJob(j,p)
-			self.i = 0
-		end
-		self.i = self.i + 1
-	end
-	if self.i - #self.map.jobQueue > 1 then
-		self.i = 1
-	end
-	--calc path
-	if #self.path > 0 then
-		local p = 1/math.sqrt((self.path[#self.path].x-self.tile.x)^2+(self.path[#self.path].y-self.tile.y)^2)
-		local x = (self.path[#self.path].x-self.tile.x) * dt * self.tps * p
-		local y = (self.path[#self.path].y-self.tile.y) * dt * self.tps * p
-		self.x = self.x + x
-		self.y = self.y + y
-		x = math.abs(self.x - self.tile.x) >= math.abs(self.path[#self.path].x - self.tile.x)
-		y = math.abs(self.y - self.tile.y) >= math.abs(self.path[#self.path].y - self.tile.y)
-		if x and y then
-			self.x, self.y = self.path[#self.path].x, self.path[#self.path].y
-			self:registerTile(self.path[#self.path].x, self.path[#self.path].y)
-			self.path[#self.path] = nil
-		end
-	end
-	--work on job
+	self:move(dt)
 	if self.job and #self.path == 0 then
-		if self.job:update(dt) then
-			self:jobEnded()
-		end
+		self:workOnJob(dt)
 	end
 end
 
@@ -89,70 +53,10 @@ function player:draw()
 	love.graphics.circle("fill",(self.x-self.map.x)*s+s/2,(self.y-self.map.y)*s+s/2,s/2-2,s/2-2)
 	love.graphics.setColor(color.black)
 	love.graphics.circle("line",(self.x-self.map.x)*s+s/2,(self.y-self.map.y)*s+s/2,s/2-2,s/2-2)
-end
-
-function player:pathfind(start,target,map,targetOk)
-	if targetOK == nil then
-		local targetOK = true
+	--item
+	if self.item then
+		love.graphics.print(self.item.name.." * "..self.item.amu,(self.x-self.map.x)*s,(self.y-self.map.y)*s)
 	end
-	local open = {}
-	local closed = {}
-	open[start.x.."_"..start.y] = start:new()
-	open[start.x.."_"..start.y].g = 0 --dist from start
-	open[start.x.."_"..start.y].h = math.floor(math.sqrt((start.x-target.x)^2+(start.y-target.y)^2)*10)/10 --dist from end
-	open[start.x.."_"..start.y].f = open[start.x.."_"..start.y].h --G+H
-	local current = nil
-	while true do
-		for n in pairs(open) do
-			if not current or current.f > open[n].f then
-				current = open[n]
-			end
-		end
-		if not current or closed[target.x.."_"..target.y] then
-			break
-		end
-		open[current.x.."_"..current.y] = nil
-		closed[current.x.."_"..current.y] = current
-		local n = {}
-		for x = current.x-1,current.x+1 do
-			for y = current.y-1,current.y+1 do
-				if x ~= current.x and  y ~= current.y and map:tileWalkeble(x,current.y) and map:tileWalkeble(current.x,y) then
-					n[#n+1] = vector2:new(x,y) 
-					n[#n].g = current.g + 14
-					n[#n].h = math.floor(math.sqrt((x-target.x)^2+(y-target.y)^2)*10)
-					n[#n].f = n[#n].g + n[#n].h
-					n[#n].p = current
-				elseif (x ~= current.x and y == current.y) or (x == current.x and  y ~= current.y) then
-					n[#n+1] = vector2:new(x,y)
-					n[#n].g = current.g + 10
-					n[#n].h = math.floor(math.sqrt((x-target.x)^2+(y-target.y)^2)*10)
-					n[#n].f = n[#n].g + n[#n].h
-					n[#n].p = current
-				end
-			end
-		end
-		for i = 1,#n do
-			if (not closed[n[i].x.."_"..n[i].y] and map:tileWalkeble(n[i].x,n[i].y)) or (n[i].x == target.x and n[i].y == target.y) then
-				if not open[n[i].x.."_"..n[i].y] or open[n[i].x.."_"..n[i].y].f > n[i].f then
-					open[n[i].x.."_"..n[i].y] = n[i]
-				end
-			end
-		end
-		n = nil
-		current = nil
-	end
-	local path = {}
-	local s = true
-	if closed[target.x.."_"..target.y] then
-		path[1] = closed[target.x.."_"..target.y]
-		while path[#path].g ~= 0 do
-			path[#path+1] = path[#path].p
-		end
-	else
-		path[1] = start[start.x.."_"..start.y]
-		s = false
-	end
-	return path,s,closed,open
 end
 
 function player:save()
@@ -162,7 +66,7 @@ end
 
 function player:pressed(x,y,b)
 	if b == 1 and not mouse.drag and (x ~= self.x or y ~= self.y) and self.map:tileWalkeble(x,y) then
-		local p,s = self:pathfind(vector2:new(self.tile.x,self.tile.y),vector2:new(x,y),self.map,false)
+		local p,s = path.find(vector2:new(self.tile.x,self.tile.y),vector2:new(x,y),self.map,false)
 		if s then
 			if self.job then
 				self:returnJob()
@@ -180,13 +84,40 @@ function player:pressed(x,y,b)
 		end
 	elseif b == 2 and self.map[x][y]:hasJob() and not mouse.drag then
 		j = self.map[x][y]:getJob()
-		local p,s = self:pathfind(vector2:new(self.tile.x,self.tile.y),vector2:new(x,y),self.map)
+		local p,s = path.find(vector2:new(self.tile.x,self.tile.y),vector2:new(x,y),self.map)
 		if s then
 			if self.job then
 				self:returnJob()
 			end
-			self:getJob(j,p)
+			self:getJob(j)
 		end
+	end
+end
+
+function player:findJob()
+	if self.i - #self.map.jobQueue > 1 then
+		self.i = 1
+	end
+	if not self.cheaked then
+		for k,v in pairs(self.tile:getNeighbours(true,1)) do
+			if v:hasJob() then
+				if v:walkeble() then
+					self:getJob(v:getJob())
+					break
+				end
+			end
+		end
+		self.cheaked = true
+	end
+	while self.i <= #self.map.jobQueue do
+		local j = self.map.jobQueue[self.i]
+		local p, s = path.find(vector2:new(self.tile.x,self.tile.y),vector2:new(j.tile.x,j.tile.y),self.map)
+		if s and (not j.reqMat or self.map.itemManeger:invExist(j.reqMat)) then
+			self:getJob(j)
+			self.i = 1
+			break
+		end
+		self.i = self.i + 1
 	end
 end
 
@@ -199,28 +130,115 @@ function player:returnJob()
 	self.path = {self.path[#self.path]}
 end
 
-function player:getJob(j,p,keepLast)
-	local p = p or self:pathfind(vector2:new(self.tile.x,self.tile.y),vector2:new(j.tile.x,j.tile.y),self.map)
+function player:getJob(j)
 	self.job = j -- get job
 	table.removeValue(self.job.queue, j) -- remouve job from queue
 	j.queue = self -- add to new queue
-	function j:jobCanceled()
-		self.queue.path = {self.queue.path[#self.queue.path]}
-	end
-	if #self.path > 0 then
-		local n = self.path[#self.path]
-		self.path = p
-		self.path[#self.path + 1] = n
-	else
-		self.path = p
-		self.path[#self.path] = nil -- remove current tile
-	end
-	if not keepLast then
-		table.remove(self.path,1) -- remove target tile
-	end	
 end
 
 function player:jobEnded()
 	self.cheaked = false
 	self.job = nil
+end
+
+function player:workOnJob(dt)
+	-- need mat
+	if self.job.reqMat and not self.job:hasReqMat() then
+		if self.item and self.job.reqMat[self.item.name] then -- do i have object
+			if self.job:atJob(self.x,self.y,true) then -- am i on tile
+				self:useItem()
+				self:workOnJob(dt)
+				return true
+			else
+				self.path = path.find(vector2:new(self.x,self.y),vector2:new(self.job.tile.x,self.job.tile.y),self.map)
+				self.path[#self.path] = nil -- remove current tile
+				table.remove(self.path,1) -- remove target tile
+				return true
+			end
+		end
+
+		if self.tile.item and self.job.reqMat[self.tile.item.name] and not self.item then
+			self:pickUpItem(self.job.reqMat[self.tile.item.name])
+			self:workOnJob(dt)
+			return true
+		elseif not self.item then
+			local v,k = table.getValue(self.job.reqMat)
+			local p = self.map.itemManeger:findItem(k,self.x,self.y)
+			if p then
+				self.path = p
+			else
+				self:returnJob()
+			end
+			return true
+		end
+	end
+	-- has mat
+	if not self.job.reqMat or self.job:hasReqMat() then
+		if self.job:atJob(self.x,self.y,true) then
+			self.job:update(dt)
+		else
+			self.path = path.find(vector2:new(self.x,self.y),vector2:new(self.job.tile.x,self.job.tile.y),self.map)
+			self.path[#self.path] = nil -- remove current tile
+			table.remove(self.path,1) -- remove target tile
+		end
+	end
+end
+
+function player:move(dt)
+	if #self.path > 0 and self.map[self.path[#self.path].x][self.path[#self.path].y]:walkeble() then
+		local p = 1/math.sqrt((self.path[#self.path].x-self.tile.x)^2+(self.path[#self.path].y-self.tile.y)^2)
+		local x = (self.path[#self.path].x-self.tile.x) * dt * self.speed * p
+		local y = (self.path[#self.path].y-self.tile.y) * dt * self.speed * p
+		self.x = self.x + x
+		self.y = self.y + y
+		x = math.abs(self.x - self.tile.x) >= math.abs(self.path[#self.path].x - self.tile.x)
+		y = math.abs(self.y - self.tile.y) >= math.abs(self.path[#self.path].y - self.tile.y)
+		if x and y then
+			self.x, self.y = self.path[#self.path].x, self.path[#self.path].y
+			self:registerTile(self.path[#self.path].x, self.path[#self.path].y)
+			self.path[#self.path] = nil
+		end
+	end
+end
+
+function player:useItem(object)
+	object = object or self.job.tile.object
+	object:addItem(self.item)
+	if self.item.amu == 0 then
+		self.item = nil
+	end
+end
+
+function player:dropItem()
+	object:addItem(self.item)
+	if self.item.amu == 0 then
+		self.item = nil
+		return true
+	end
+	return false
+end
+
+function player:pickUpItem(amu)
+	local amu = amu or amu and self.item ~= nil and math.max(self.item.stackSize-self.item.amu) or -1
+	if not self.tile.item or (self.item and self.tile.item.name ~= self.item.name) then
+		return false
+	elseif not self.item then
+		if self.tile.item.amu <= amu then
+			self.item = self.tile.item
+			self.map.itemManeger:remouveItem(self.tile)
+			self.tile.item = nil
+		else
+			self.item = self.tile.item:new({amu = amu})
+			self.tile.item.amu = self.tile.item.amu - amu
+		end
+	else
+		self.tile.item.amu = self.tile.item.amu + amu
+		if self.tile.item.amu <= amu then
+			self.tile.item = nil
+			self.map.itemManeger:remouveItem(self.tile)
+		else
+			self.tile.item.amu = self.tile.item.amu - amu
+		end
+	end
+	return true
 end

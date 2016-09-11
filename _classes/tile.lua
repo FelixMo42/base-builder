@@ -3,12 +3,9 @@ tile = class:new({
 	color = color.none,
 	buildTime = 1,
 	name = "def",
+	job = {},
+	load = class.tableCopyLoad
 })
-
-function tile:load()
-
-	self.job = {}
-end
 
 function tile:draw()
 	local x,y = (self.x-self.map.x)*self.map.scale, (self.y-self.map.y)*self.map.scale
@@ -20,7 +17,29 @@ function tile:draw()
 	if table.count(self.job) > 0 then
 		love.graphics.setColor(100,100,100,100)
 		love.graphics.rectangle("fill",x,y,self.map.scale,self.map.scale)
+		love.graphics.setColor(color.black)
+		love.graphics.print(table.getValue(self.job).jobTime,x+2,y+2)
 	end
+	if self.item and self.item.amu > 0 then
+		self.item:draw()
+	end
+end
+
+function tile:addItem(item)
+	if not self.item then
+		self.item = item
+		item.tile = self
+		self.map.itemManeger:addItem(self)
+	elseif item.name ~= self.item.name then
+		return false
+	elseif self.item.amu + item.amu > self.item.stackSize then
+		item.amu = item.amu - (item.stackSize - self.item.amu)
+		self.item.amu = item.stackSize
+	else
+		self.item.amu = self.item.amu + item.amu
+		item.amu = 0
+	end
+	return true
 end
 
 function tile:instalObject(obj)
@@ -35,6 +54,7 @@ function tile:instalObject(obj)
 			self.tile.job.object = nil
 			self.tile.object = self.object:new({tile = self.tile})
 		end
+		self.job.object:setReqMat(obj.required,self.object)
 	elseif shouldBuild then -- replace object
 		self.job.object = job:new({tile = self,object = obj,queue = self.map.jobQueue, jobTime = self.object.buildTime/2})
 		function self.job.object:jobComplet()
@@ -47,7 +67,7 @@ end
 
 function tile:changeType(t)
 	local j = self.job.type
-	if j and t.name == "grass" then --  stop tile build job
+	if j and t.name == "grass" then -- stop tile build job
 		j:cancel()
 		self.job.type = nil
 	elseif t.name ~= self.name and not j then -- change tile type
@@ -106,6 +126,17 @@ function tile:save()
 	end
 	s = s.."})"
 	return s
+end
+
+function tile:print()
+	local s = "tile type: "..self.name.."\n"
+	if self.object then
+		s = s ..self.object:print().."\n"
+	end
+	if self.item then
+		s = s .. "item: "..self.item.name.." * "..self.item.amu.." \n"
+	end
+ 	return s
 end
 
 tiles = {}

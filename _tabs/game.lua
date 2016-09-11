@@ -1,10 +1,14 @@
 function game.load()
 	--system
 		tabs.def = "game"
-	--map
+	--debug
 		world = map:new()
 		world:addPlayer()
 		world:addPlayer(1,0)
+		world:addPlayer(2,0)
+
+		world[1][3]:addItem(items.wood:new({amu = 45}))
+		world[1][4]:addItem(items.wood:new({amu = 15}))
 	--mouse
 		mouse.tile = vector2:new(0,0)
 	--ui
@@ -91,14 +95,15 @@ function game.draw()
 			game.ui[i]:draw()
 		end
 	--selected box
-		if mouse.selected then
-			local w = f11:getWidth("selected type: "..mouse.selected.type)+25
+		love.graphics.setFont(f12)
+		if world[mouse.tile.x][mouse.tile.y].print then
+			local s = world[mouse.tile.x][mouse.tile.y]:print()
+			local w,h = f12:getWidth(s)+10, (#string.lines(s)-1)*20+5
 			love.graphics.setColor(255,255,255,100)
-			love.graphics.rectangle("fill",screen.x,0,-w,40)
+			love.graphics.rectangle("fill",-10,-10,w+10,h+10,5)
 			love.graphics.setColor(0,0,0)
-			love.graphics.rectangle("line",screen.x,0,-w,40)
-			love.graphics.printf("selected type: "..mouse.selected.type,5,5,screen.x-10,"right")
-			love.graphics.printf("selected "..mouse.selected.type..": "..mouse.selected.name,5,20,screen.x-10,"right")
+			love.graphics.rectangle("line",-10,-10,w+10,h+10,5)
+			love.graphics.print(s,5,5)
 		end
 end
 

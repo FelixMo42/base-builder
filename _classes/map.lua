@@ -3,10 +3,11 @@ map = class:new({
 	width = 100, height = 100,
 	x = 0, y = 0, scale = 50,
 	jobQueue = {}, players = {},
-	speed = 1, rooms = {}
+	speed = 1
 })
 
 function map:load()
+	self.itemManeger = itemManeger:new()
 	self.jobQueue = {}; self.players = {}
 	for x = 0,self.width-1 do
 		self[x] = self[x] or {}
@@ -50,8 +51,9 @@ function map:draw()
 	for i =  1,#self.players do
 		self.players[i]:draw()
 	end
-	--debug
-	love.graphics.print("speed: "..self.speed,5,5)
+	--info
+	love.graphics.printf("speed: "..self.speed,5,screen.y-35-20-20,screen.x-10,"right")
+	love.graphics.printf("job list: "..#self.jobQueue,5,screen.y-35-20,screen.x-10,"right")
 end
 
 function map:mousemoved(x,y,dx,dy)
@@ -104,9 +106,9 @@ function map:keyreleased(key)
 end
 
 function map:setTile(x,y,t)
-	self[x][y] = (t):new({
+	self[x][y] = t:new({
 		x = x, y = y,
-		map = self,
+		map = self
 	})
 	if not self[x][y].object or self[x][y].object.name == "none" then
 		self[x][y].object = objects.none:new({tile = self[x][y]})
