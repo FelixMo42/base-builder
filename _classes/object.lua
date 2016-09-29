@@ -6,15 +6,15 @@ object = class:new({
 	buildTime = 1,
 	name = "def",
 	required = {},
-	iventory = {},
+	inventory = {},
 	load = class.tableCopyLoad
 })
 
 function object:draw()
-	local x = (self.tile.x-self.tile.map.x)*self.tile.map.scale
-	local y = (self.tile.y-self.tile.map.y)*self.tile.map.scale
+	local x = (self.tile.x-self.tile.map.x-self.width+1)*self.tile.map.scale
+	local y = (self.tile.y-self.tile.map.y-self.height+1)*self.tile.map.scale
 	love.graphics.setColor(self.color)
-	love.graphics.rectangle("fill",x,y,self.tile.map.scale,self.tile.map.scale)
+	love.graphics.rectangle("fill",x,y,self.tile.map.scale*self.width,self.tile.map.scale*self.height)
 end
 
 function object:print()
@@ -26,8 +26,8 @@ function object:print()
 end
 
 function object:addItem(item)
-	if self.iventory[item.name] then
-		local i = self.iventory[item.name]
+	if self.inventory[item.name] then
+		local i = self.inventory[item.name]
 		if i.amu + item.amu >= i.stackSize then
 			item.amu = item.amu - (i.stackSize - i.amu)
 			i.amu = i.stackSize
@@ -41,11 +41,39 @@ function object:addItem(item)
 end
 
 function object:addInv(inv)
-	if not self.iventory[inv.name] then
-		self.iventory[inv.name] = inv
+	if not self.inventory[inv.name] then
+		self.inventory[inv.name] = inv
 	end
 end
 
+function object:cheakTile(tile)
+	for x = 0,self.width-1 do
+		for y = 0, self.height-1 do
+			if tile.map[tile.x-x][tile.y-y].object.name ~= "none" then
+				return false
+			end
+		end
+	end
+	return true
+end
+
+function object:destroy(o)
+	local t = self.tile
+	for inv, amu in pairs(self.required) do
+		t:addItem( items[inv]:new({amu = amu, tile = t}) )
+		t = self.tile.map.itemManeger:findEmpty(self.tile.x,self.tile.y)
+	end
+	self.tile.object = o or objects.none:new()
+end
+
 objects = {}
-objects.none = object:new({name = "none",draw = function() end})
-objects.wall = object:new({name = "wall", color = color.brown, moveCost = -1, required = {wood = 10}})
+objects.none = object:new({
+	name = "none", 
+	draw = function() end
+})
+objects.wall = object:new({
+	name = "wall",
+	color = color.brown,
+	moveCost = -1,
+	required = {wood = 10}
+})

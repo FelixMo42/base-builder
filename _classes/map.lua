@@ -7,7 +7,7 @@ map = class:new({
 })
 
 function map:load()
-	self.itemManeger = itemManeger:new()
+	self.itemManeger = itemManeger:new({map = self})
 	self.jobQueue = {}; self.players = {}
 	for x = 0,self.width-1 do
 		self[x] = self[x] or {}
@@ -71,7 +71,7 @@ function map:mousereleased(x, y, button)
 		m.selected:pressed(m.tile.x,m.tile.y,b)
 	elseif not m.drag and b == 1 then
 		self:tilePressed(m.tile.x,m.tile.y)
-	elseif m.tile.drag and b == 1 then
+	elseif m.tile.drag and b == 1 and (mouse.selected ~= "object" or mouse.selected.width == 1 and mouse.selected.width == 2)then
 		for x = m.tile.drag.x,m.tile.x,math.sign(m.tile.x-m.tile.drag.x+0.1) do
 			for y = m.tile.drag.y,m.tile.y,math.sign(m.tile.y-m.tile.drag.y+0.1) do
 				if x == m.tile.drag.x or x == m.tile.x or y == m.tile.drag.y or y == m.tile.y or not m.selected.name:find("wall") then
@@ -120,6 +120,7 @@ end
 function map:changeTile(x,y,t)
 	local j = self[x][y].job
 	self[x][y] = self[x][y]:new(t:new())
+	self[x][y].map = self
 	self[x][y].job = j
 	if self[x][y].object then
 		self[x][y].object.tile = self[x][y]

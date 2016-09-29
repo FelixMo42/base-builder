@@ -23,10 +23,12 @@ function player:registerTile(x,y)
 end
 
 function player:update(dt)
-	if not self.job then
+	if not self.job and #self.path == 0 then
 		self:findJob(dt)
 	end
-	self:move(dt)
+	if #self.path > 0 then
+		self:move(dt)
+	end
 	if self.job and #self.path == 0 then
 		self:workOnJob(dt)
 	end
@@ -66,12 +68,8 @@ end
 
 function player:pressed(x,y,b)
 	if b == 1 and not mouse.drag and (x ~= self.x or y ~= self.y) and self.map:tileWalkeble(x,y) then
-		local p,s = path.find(vector2:new(self.tile.x,self.tile.y),vector2:new(x,y),self.map,false)
+		local p,s = path.find(vec2:new(self.tile.x,self.tile.y),vec2:new(x,y),self.map,false)
 		if s then
-			if self.job then
-				self:returnJob()
-			end
-			self.job = job:new({jobTime = 0, tile = self.map[x][y], queue = self})
 			if #self.path > 0 then
 				local n = self.path[#self.path]
 				self.path = p
@@ -80,11 +78,10 @@ function player:pressed(x,y,b)
 				self.path = p
 				self.path[#self.path] = nil -- remove current tile
 			end
-			self.job.name = "move"
 		end
 	elseif b == 2 and self.map[x][y]:hasJob() and not mouse.drag then
 		j = self.map[x][y]:getJob()
-		local p,s = path.find(vector2:new(self.tile.x,self.tile.y),vector2:new(x,y),self.map)
+		local p,s = path.find(vec2:new(self.tile.x,self.tile.y),vec2:new(x,y),self.map)
 		if s then
 			if self.job then
 				self:returnJob()
@@ -111,7 +108,7 @@ function player:findJob()
 	end
 	while self.i <= #self.map.jobQueue do
 		local j = self.map.jobQueue[self.i]
-		local p, s = path.find(vector2:new(self.tile.x,self.tile.y),vector2:new(j.tile.x,j.tile.y),self.map)
+		local p, s = path.find(vec2:new(self.tile.x,self.tile.y),vec2:new(j.tile.x,j.tile.y),self.map)
 		if s and (not j.reqMat or self.map.itemManeger:invExist(j.reqMat)) then
 			self:getJob(j)
 			self.i = 1
@@ -142,17 +139,34 @@ function player:jobEnded()
 end
 
 function player:workOnJob(dt)
-	-- need mat
+	if not self.job then
+		return false
+	end
+
 	if self.job.reqMat and not self.job:hasReqMat() then
 		if self.item and self.job.reqMat[self.item.name] then -- do i have object
-			if self.job:atJob(self.x,self.y,true) then -- am i on tile
+			if self.item.amu < self.job.reqMat[self.item.name] and self.job.getAll then
+				if self.tile.item and self.tile.item.name == self.item.name then
+					self:pickUpItem(self.job.reqMat[self.item.name] - self.item.amu)
+					self:workOnJob(dt)
+					return true
+				else
+					local p = self.map.itemManeger:findItem(self.item.name,self.x,self.y)
+					if p then
+						self.path = p
+					else
+						self:returnJob()
+					end
+					return true
+				end
+			elseif self.job:atJob(self.x,self.y,true) then -- am i on tile
 				self:useItem()
 				self:workOnJob(dt)
 				return true
 			else
-				self.path = path.find(vector2:new(self.x,self.y),vector2:new(self.job.tile.x,self.job.tile.y),self.map)
+				self.path = path.find(vec2:new(self.x,self.y),vec2:new(self.job.tile.x,self.job.tile.y),self.map,self.job.overlap)
 				self.path[#self.path] = nil -- remove current tile
-				table.remove(self.path,1) -- remove target tile
+				if not self.job.overlap then table.remove(self.path,1) end -- remove target tile
 				return true
 			end
 		end
@@ -171,21 +185,34 @@ function player:workOnJob(dt)
 			end
 			return true
 		end
+
+		if self.item and not self.job.reqMat[self.item.name] then
+			if not self.tile.item or self.tile.item.name == self.item.name and self.tile.item.amu < self.item.stackSize then
+				self:dropItem()
+				self:workOnJob(dt)
+				return true
+			else
+				local t = self.map.itemManeger.find.findEmpty(self.x,self.y)
+				self.path = path.find(vec2:new(self.x,self.y),vec2:new(t.x,t.y),self.map,true)
+				self.path[#self.path] = nil -- remove current tile
+				return true
+			end
+		end
 	end
-	-- has mat
+
 	if not self.job.reqMat or self.job:hasReqMat() then
 		if self.job:atJob(self.x,self.y,true) then
 			self.job:update(dt)
 		else
-			self.path = path.find(vector2:new(self.x,self.y),vector2:new(self.job.tile.x,self.job.tile.y),self.map)
+			self.path = path.find(vec2:new(self.x,self.y),vec2:new(self.job.tile.x,self.job.tile.y),self.map,self.map,self.job.overlap)
 			self.path[#self.path] = nil -- remove current tile
-			table.remove(self.path,1) -- remove target tile
+			if not self.job.overlap then table.remove(self.path,1) end -- remove target tile
 		end
 	end
 end
 
 function player:move(dt)
-	if #self.path > 0 and self.map[self.path[#self.path].x][self.path[#self.path].y]:walkeble() then
+	if self.map[self.path[#self.path].x][self.path[#self.path].y]:walkeble() then
 		local p = 1/math.sqrt((self.path[#self.path].x-self.tile.x)^2+(self.path[#self.path].y-self.tile.y)^2)
 		local x = (self.path[#self.path].x-self.tile.x) * dt * self.speed * p
 		local y = (self.path[#self.path].y-self.tile.y) * dt * self.speed * p
@@ -198,6 +225,11 @@ function player:move(dt)
 			self:registerTile(self.path[#self.path].x, self.path[#self.path].y)
 			self.path[#self.path] = nil
 		end
+	elseif math.floor(self.x) == self.x and math.floor(self.y) == self.y then
+		self.path = {}
+	else
+		self.x = self.tile.x
+		self.y = self.tile.y
 	end
 end
 
@@ -226,18 +258,19 @@ function player:pickUpItem(amu)
 		if self.tile.item.amu <= amu then
 			self.item = self.tile.item
 			self.map.itemManeger:remouveItem(self.tile)
-			self.tile.item = nil
+			self.tile:itemTaken(-1)
 		else
 			self.item = self.tile.item:new({amu = amu})
-			self.tile.item.amu = self.tile.item.amu - amu
+			self.tile:itemTaken(amu)
 		end
 	else
-		self.tile.item.amu = self.tile.item.amu + amu
 		if self.tile.item.amu <= amu then
-			self.tile.item = nil
+			self.item.amu = self.item.amu + self.tile.item.amu
 			self.map.itemManeger:remouveItem(self.tile)
+			self.tile:itemTaken(-1)
 		else
-			self.tile.item.amu = self.tile.item.amu - amu
+			self.item.amu = self.item.amu + amu
+			self.tile:itemTaken(amu)
 		end
 	end
 	return true

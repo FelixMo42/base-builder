@@ -1,6 +1,9 @@
 job = class:new({
+	type = "job",
 	tile = tile,
-	jobTime = 1
+	jobTime = 1,
+	overlap = false,
+	getAll = true
 })
 
 function job:load()
@@ -40,7 +43,7 @@ end
 function job:hasReqMat(object)
 	local object = object or self.tile.object
 	for mat, amu in pairs(self.reqMat) do
-		if object.iventory[mat].amu < amu then
+		if object.inventory[mat].amu < amu then
 			return false
 		end
 	end

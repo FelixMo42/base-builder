@@ -22,10 +22,10 @@ function love.load()
 		for i = 5,150 do
 			_G["f"..i] = love.graphics.newFont(i)
 		end
-		screen = vector2:new(love.graphics.getDimensions())
+		screen = vec2:new(love.graphics.getDimensions())
 		love.math.setRandomSeed(os.time())
 	--mouse
-		mouse = vector2:new(love.mouse.getPosition())
+		mouse = vec2:new(love.mouse.getPosition())
 		mouse.drag = false
 	--classes
 		for i,file in pairs(love.filesystem.getDirectoryItems("_classes")) do

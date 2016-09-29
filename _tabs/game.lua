@@ -6,11 +6,11 @@ function game.load()
 		world:addPlayer()
 		world:addPlayer(1,0)
 		world:addPlayer(2,0)
-
-		world[1][3]:addItem(items.wood:new({amu = 45}))
-		world[1][4]:addItem(items.wood:new({amu = 15}))
+		for i = 1,1 do
+			world[i+5][1]:addItem(items.wood:new({amu = 50}))
+		end
 	--mouse
-		mouse.tile = vector2:new(0,0)
+		mouse.tile = vec2:new(0,0)
 	--ui
 		game.ui = {}
 		game.ui[1] = button:new({
@@ -95,10 +95,15 @@ function game.draw()
 			game.ui[i]:draw()
 		end
 	--selected box
-		love.graphics.setFont(f12)
-		if world[mouse.tile.x][mouse.tile.y].print then
-			local s = world[mouse.tile.x][mouse.tile.y]:print()
-			local w,h = f12:getWidth(s)+10, (#string.lines(s)-1)*20+5
+		local s = ""
+		if mouse.selected then
+			s = "selected "..mouse.selected.type..": "..mouse.selected.name
+		elseif world[mouse.tile.x][mouse.tile.y].print then
+			s = world[mouse.tile.x][mouse.tile.y]:print()
+		end
+		local w,h = f12:getWidth(s)+10 , (#string.lines(s))*20+5
+		if s then
+			love.graphics.setFont(f12)
 			love.graphics.setColor(255,255,255,100)
 			love.graphics.rectangle("fill",-10,-10,w+10,h+10,5)
 			love.graphics.setColor(0,0,0)

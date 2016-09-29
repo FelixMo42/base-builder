@@ -29,9 +29,9 @@ function class:tableDeepCopyLoad(o)
 	end
 end
 
-vector2 = {}
+vec2 = {}
 
-function vector2:new(x,y)
+function vec2:new(x,y)
 	local this = {x = x, y = y}
 	for k in pairs(self) do
 		this[k] = self[k]
@@ -70,13 +70,13 @@ function path.find(start,target,map,targetOk)
 		for x = current.x-1,current.x+1 do
 			for y = current.y-1,current.y+1 do
 				if x ~= current.x and  y ~= current.y and map:tileWalkeble(x,current.y) and map:tileWalkeble(current.x,y) then
-					n[#n+1] = vector2:new(x,y) 
+					n[#n+1] = vec2:new(x,y) 
 					n[#n].g = current.g + 14
 					n[#n].h = math.floor(math.sqrt((x-target.x)^2+(y-target.y)^2)*10)
 					n[#n].f = n[#n].g + n[#n].h
 					n[#n].p = current
 				elseif (x ~= current.x and y == current.y) or (x == current.x and  y ~= current.y) then
-					n[#n+1] = vector2:new(x,y)
+					n[#n+1] = vec2:new(x,y)
 					n[#n].g = current.g + 10
 					n[#n].h = math.floor(math.sqrt((x-target.x)^2+(y-target.y)^2)*10)
 					n[#n].f = n[#n].g + n[#n].h
@@ -108,30 +108,31 @@ function path.find(start,target,map,targetOk)
 	return path,s,closed,open
 end
 
-function path.loop(f,t)
+function path.loop(f,x,y,t)
 	local t = t or 10
 	for n = 1,t do
 		for i = 1, 2*n-1 do
-			if f(-n+1,-n+1+i) then
+			if f(-n+1+x,-n+1+i+y) then
 				return -n+1, -n+1+i
 			end
 		end
 		for i = 1, 2*n-1 do
-			if f(-n+1+i,n) then
+			if f(-n+1+i+x,n+y) then
 				return -n+1+i, n
 			end
 		end
 		for i = 1, 2*n do
-			if f(n,n-i) then
+			if f(n+x,n-i+y) then
 				return n, n-i
 			end
 		end
 		for i = 1, 2*n do
-			if f(n-i,-n) then
+			if f(n-i+x,-n+y) then
 				return n-i, -n
 			end
 		end
 	end
+	return x,y
 end
 
 function math.sign(n) return n>0 and 1 or n<0 and -1 or 0 end

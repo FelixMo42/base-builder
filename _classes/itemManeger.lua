@@ -1,4 +1,4 @@
-itemManeger = class:new({})
+itemManeger = class:new({map=map})
 
 function itemManeger:addItem(tile)
 	if not self[tile.item.name] then
@@ -17,7 +17,7 @@ function itemManeger:findItem(item,x,y)
 			return self[item][1]
 		end
 		for i = 1,#self[item] do
-			local p,s = path.find(vector2:new(x,y),vector2:new(self[item][i].x,self[item][i].y),self[item][i].map)
+			local p,s = path.find(vec2:new(x,y),vec2:new(self[item][i].x,self[item][i].y),self[item][i].map)
 			if s then
 				p[#p] = nil -- remove current tile
 				return p, self[item][1]
@@ -26,6 +26,21 @@ function itemManeger:findItem(item,x,y)
 	else
 		return false
 	end
+end
+
+function itemManeger:findEmpty(x,y)
+	local world = self.map
+	local f = function(x,y)
+		if world[x] and world[x][y] and not world[x][y].item then
+			return true
+		end
+		return false
+	end
+	local x,y = path.loop(f,x,y)
+	if self.map then
+		return self.map[x][y]
+	end
+	return x,y
 end
 
 function itemManeger:invExist(inv)
