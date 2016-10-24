@@ -21,6 +21,7 @@ function map:load()
 	if self.y == -1 then
 		self.y = (self.height-screen.y/self.scale)/2
 	end
+	self:generate()
 end
 
 function map:update(dt)
@@ -95,10 +96,10 @@ function map:keyreleased(key)
 		self.speed = self.speed == 0 and 1 or 0
 	end
 	if key == "left" then
-		self.speed = self.speed - 0.5
+		self.speed = self.speed / 1.5
 	end
 	if key == "right" then
-		self.speed = self.speed + 0.5
+		self.speed = self.speed * 1.5
 	end
 	if key == "s" then
 		world:save()
@@ -119,6 +120,7 @@ end
 
 function map:changeTile(x,y,t)
 	local j = self[x][y].job
+	local p = self[x][y].player
 	self[x][y] = self[x][y]:new(t:new())
 	self[x][y].map = self
 	self[x][y].job = j
@@ -127,6 +129,9 @@ function map:changeTile(x,y,t)
 	end
 	for job in pairs(self[x][y].job) do
 		self[x][y].job[job].tile = self[x][y]
+	end
+	if p then
+		p.tile = self[x][y]
 	end
 end
 
@@ -156,6 +161,16 @@ function map:addPlayer(x,y,p)
 	end
 end
 
+function map:generate()
+	for x = 0,self.width-1 do
+		for y = 0,self.height-1 do
+			if math.random() > .90 then
+				self[x][y].object = objects.tree:new({tile = self[x][y]})
+			end
+		end
+	end
+end
+
 function map:save(file)
 	local s = "local w = {}\n"
 	s = s .. "w = world:new("..fileSystem.saveTable(self)..")\n"
@@ -167,9 +182,7 @@ function map:save(file)
 	end
 	--players
 	for i = 1,#self.players do
-		s = s.."w:addPlayer()\n"
-		s = s.."w.players[#w.players] = w.players[#w.players]:new("
-		s = s..self.players[i]:save()..")\n"
+		s = s.."w:addPlayer("..x..","..y..","..self.players[i]:save()..")\n"
 	end
 	s = s .. "return w"
 	fileSystem.saveToFile("map", s)

@@ -28,9 +28,10 @@ end
 
 function tile:addItem(item)
 	if not self.item then
-		self.item = item
-		item.tile = self
+		self.item = item:new()
+		self.item.tile = self
 		self.map.itemManeger:addItem(self)
+		item.amu = 0
 	elseif item.name ~= self.item.name then
 		return false
 	elseif self.item.amu + item.amu > self.item.stackSize then
@@ -55,6 +56,9 @@ function tile:itemTaken(amu)
 end
 
 function tile:instalObject(obj)
+	if (obj.tileReq.t and not obj.tileReq[self.name]) or (not obj.tileReq.t and obj.tileReq[self.name]) then
+		return
+	end
 	local j = self.job.object
 	local shouldBuild = obj.name ~= self.object.name and not j -- should I build
 	if j and obj.name == "none" then -- stop object build job
@@ -112,6 +116,9 @@ function tile:changeType(t)
 		j:cancel()
 		self.job.type = nil
 	elseif t.name ~= self.name and not j then -- change tile type
+		if (self.object.tileReq.t and self.object.tileReq[self.name]) or (not self.object.tileReq.t and not self.object.tileReq[self.name]) then
+			self:instalObject(objects.none:new())
+		end
 		self.job.type = job:new({tile = self,type = t,queue = self.map.jobQueue, jobTime = t.buildTime})
 		function self.job.type:jobComplet()
 			self.tile.job.type = nil
@@ -165,6 +172,9 @@ function tile:save()
 	if self.object.name ~= "none" then
 		s = s..",object = objects."..self.object.name..":new()"
 	end
+	if self.item then
+		s = s..",item = "..self.item:save()
+	end
 	s = s.."})"
 	return s
 end
@@ -172,10 +182,13 @@ end
 function tile:print()
 	local s = "tile type: "..self.name
 	if self.object and self.object.name ~= "none" then
-		s = s .. "\n"..self.object:print()
+		s = s.."\n"..self.object:print()
 	end
 	if self.item then
-		s = s .. "\nitem: "..self.item.name.." * "..self.item.amu
+		s = s.."\nitem: "..self.item.name.." * "..self.item.amu
+	end
+	if self.player then
+		s = s.."\nplayer: "..self.player.name
 	end
  	return s
 end

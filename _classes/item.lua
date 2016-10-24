@@ -19,5 +19,13 @@ function item:draw()
 	end
 end
 
+function item:save()
+	local s = "items."..self.name..":new({"
+	s = s.."stackSize = "..self.stackSize
+	s = s..",amu = "..self.amu
+	s = s..",tile = w["..self.tile.x.."]["..self.tile.y.."]"
+	return s.."})"
+end
+
 items = {}
 items.wood = item:new({name = "wood", stackSize = 50})

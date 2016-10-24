@@ -1,7 +1,9 @@
 fileSystem = {}
 
-function fileSystem.saveTable(t)
-	local s = "{\n"
+function fileSystem.saveTable(t,b)
+	if b == nil then b = true end
+	if b then local s = "{\n" end
+	if not b then local s = "\n" end
 	for k,v in pairs(t) do
 		if type(v) == "string" then
 			s = s .. k .. " = '" .. tostring(v) .. "',\n"
@@ -9,7 +11,9 @@ function fileSystem.saveTable(t)
 			s = s .. k .. " = " .. tostring(v) .. ",\n"
 		end
 	end
-	s = s .. "}"
+	if b then
+		s = s .. "}"
+	end
 	return s
 end
 

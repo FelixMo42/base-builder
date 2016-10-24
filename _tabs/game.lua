@@ -6,7 +6,8 @@ function game.load()
 		world:addPlayer()
 		world:addPlayer(1,0)
 		world:addPlayer(2,0)
-		for i = 1,1 do
+
+		for i = 1,3 do
 			world[i+5][1]:addItem(items.wood:new({amu = 50}))
 		end
 	--mouse
@@ -42,7 +43,7 @@ function game.load()
 		game.tabs.objects[1] = game.tabs.floor[1]:new({
 			text = "destroy", data = objects.none
 		})
-		local buildList = {"wall"}
+		local buildList = {"stockPile","wall"}
 		for i = 1, #buildList do
 			game.tabs.objects[#game.tabs.objects+1] = game.tabs.objects[1]:new({
 				text = "build "..buildList[i], data = objects[buildList[i]], ry = (#game.tabs.objects + 1) * 35
@@ -98,6 +99,11 @@ function game.draw()
 		local s = ""
 		if mouse.selected then
 			s = "selected "..mouse.selected.type..": "..mouse.selected.name
+			if mouse.selected.type == "player" then
+				if mouse.selected.job then
+					s = s.."\nhas job"
+				end
+			end
 		elseif world[mouse.tile.x][mouse.tile.y].print then
 			s = world[mouse.tile.x][mouse.tile.y]:print()
 		end
@@ -110,6 +116,8 @@ function game.draw()
 			love.graphics.rectangle("line",-10,-10,w+10,h+10,5)
 			love.graphics.print(s,5,5)
 		end
+	--debug
+		love.graphics.print(#world.itemManeger.wood,300,10)
 end
 
 function game.mousemoved(x,y,dx,dy)

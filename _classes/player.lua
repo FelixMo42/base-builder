@@ -62,8 +62,9 @@ function player:draw()
 end
 
 function player:save()
-	local s = fileSystem.saveTable(self) 
-	return s
+	local s = "player:new({"
+	s = s..fileSystem.saveTable(self,false)
+	return s..")}"
 end
 
 function player:pressed(x,y,b)
@@ -139,17 +140,38 @@ function player:jobEnded()
 end
 
 function player:workOnJob(dt)
+	--make sure we have a job
 	if not self.job then
 		return false
 	end
-
+	--pick up item on work tile
+	if self.job.tile.item and self.job.object and self.job.clear then
+		if self.item and self.item.amu == self.item.stackSize then
+			if self.tile == self.job.tile or self.tile.item or self.tile.object.name ~= "none"  then
+				local t = self.map.itemManeger:findEmpty(self.x,self.y)
+				self.path = path.find(vec2:new(self.x,self.y),vec2:new(t.x,t.y),self.map,true)
+				self.path[#self.path] = nil -- remove current tile
+				return true
+			else
+				self:dropItem()
+				return self:workOnJob(dt)
+			end
+		elseif self.tile == self.job.tile then
+			self:pickUpItem(-1)
+			return self:workOnJob(dt)
+		else
+			self.path = path.find(vec2:new(self.x,self.y),vec2:new(self.job.tile.x,self.job.tile.y),self.map,self.map)
+			self.path[#self.path] = nil
+			return true
+		end
+	end
+	--get mat for job
 	if self.job.reqMat and not self.job:hasReqMat() then
 		if self.item and self.job.reqMat[self.item.name] then -- do i have object
 			if self.item.amu < self.job.reqMat[self.item.name] and self.job.getAll then
 				if self.tile.item and self.tile.item.name == self.item.name then
 					self:pickUpItem(self.job.reqMat[self.item.name] - self.item.amu)
-					self:workOnJob(dt)
-					return true
+					return self:workOnJob(dt)
 				else
 					local p = self.map.itemManeger:findItem(self.item.name,self.x,self.y)
 					if p then
@@ -161,8 +183,7 @@ function player:workOnJob(dt)
 				end
 			elseif self.job:atJob(self.x,self.y,true) then -- am i on tile
 				self:useItem()
-				self:workOnJob(dt)
-				return true
+				return self:workOnJob(dt)
 			else
 				self.path = path.find(vec2:new(self.x,self.y),vec2:new(self.job.tile.x,self.job.tile.y),self.map,self.job.overlap)
 				self.path[#self.path] = nil -- remove current tile
@@ -173,8 +194,7 @@ function player:workOnJob(dt)
 
 		if self.tile.item and self.job.reqMat[self.tile.item.name] and not self.item then
 			self:pickUpItem(self.job.reqMat[self.tile.item.name])
-			self:workOnJob(dt)
-			return true
+			return self:workOnJob(dt)
 		elseif not self.item then
 			local v,k = table.getValue(self.job.reqMat)
 			local p = self.map.itemManeger:findItem(k,self.x,self.y)
@@ -189,8 +209,7 @@ function player:workOnJob(dt)
 		if self.item and not self.job.reqMat[self.item.name] then
 			if not self.tile.item or self.tile.item.name == self.item.name and self.tile.item.amu < self.item.stackSize then
 				self:dropItem()
-				self:workOnJob(dt)
-				return true
+				return self:workOnJob(dt)
 			else
 				local t = self.map.itemManeger.find.findEmpty(self.x,self.y)
 				self.path = path.find(vec2:new(self.x,self.y),vec2:new(t.x,t.y),self.map,true)
@@ -199,7 +218,7 @@ function player:workOnJob(dt)
 			end
 		end
 	end
-
+	--work on job
 	if not self.job.reqMat or self.job:hasReqMat() then
 		if self.job:atJob(self.x,self.y,true) then
 			self.job:update(dt)
@@ -242,7 +261,7 @@ function player:useItem(object)
 end
 
 function player:dropItem()
-	object:addItem(self.item)
+	self.tile:addItem(self.item)
 	if self.item.amu == 0 then
 		self.item = nil
 		return true
@@ -251,7 +270,16 @@ function player:dropItem()
 end
 
 function player:pickUpItem(amu)
-	local amu = amu or amu and self.item ~= nil and math.max(self.item.stackSize-self.item.amu) or -1
+	local amu = amu or -1
+	if amu == -1 then
+		amu = self.tile.item.amu
+	end
+	if self.item then
+		amu = math.min(self.item.stackSize-self.item.amu, amu)
+	else
+		amu = math.min(self.tile.item.amu, amu)
+	end
+
 	if not self.tile.item or (self.item and self.tile.item.name ~= self.item.name) then
 		return false
 	elseif not self.item then

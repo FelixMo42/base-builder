@@ -1,9 +1,9 @@
 job = class:new({
 	type = "job",
 	tile = tile,
-	jobTime = 1,
-	overlap = false,
-	getAll = true
+	jobTime = 0,
+	clear = true,
+	overlap = false
 })
 
 function job:load()

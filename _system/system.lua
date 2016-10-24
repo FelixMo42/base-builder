@@ -108,27 +108,27 @@ function path.find(start,target,map,targetOk)
 	return path,s,closed,open
 end
 
-function path.loop(f,x,y,t)
+function path.loop(f,x,y,t,s)
 	local t = t or 10
 	for n = 1,t do
 		for i = 1, 2*n-1 do
-			if f(-n+1+x,-n+1+i+y) then
-				return -n+1, -n+1+i
+			if f(-n+1+x,-n+1+i+y) and not(-n+1+x == x and -n+1+i+y == y and s) then
+				return -n+1+x, -n+1+i+y
 			end
 		end
 		for i = 1, 2*n-1 do
 			if f(-n+1+i+x,n+y) then
-				return -n+1+i, n
+				return -n+1+i+x, n+y
 			end
 		end
 		for i = 1, 2*n do
 			if f(n+x,n-i+y) then
-				return n, n-i
+				return n+x, n-i+y
 			end
 		end
 		for i = 1, 2*n do
 			if f(n-i+x,-n+y) then
-				return n-i, -n
+				return n-i+x, -n+y
 			end
 		end
 	end
@@ -184,6 +184,12 @@ end
 function table.getValue(t)
 	for k,v in pairs(t) do
 		return v,k
+	end
+end
+
+function table.getKey(t)
+	for k,v in pairs(t) do
+		return k,v
 	end
 end
 
